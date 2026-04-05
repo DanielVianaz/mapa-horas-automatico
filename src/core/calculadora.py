@@ -1,4 +1,31 @@
-from validation.validador import classificar_tipo, calcular_horas_turno
+from validation.validador import classificar_tipo
+
+
+# =========================
+# CÁLCULO DE HORAS
+# =========================
+def calcular_horas_turno(turno):
+    turno = str(turno).replace(" ", "")
+
+    inicio, fim = turno.split("/")
+
+    h1, m1 = map(int, inicio.split(":"))
+    h2, m2 = map(int, fim.split(":"))
+
+    inicio_min = h1 * 60 + m1
+    fim_min = h2 * 60 + m2
+
+    if fim_min == 0:  # 24:00
+        fim_min = 24 * 60
+
+    minutos = fim_min - inicio_min
+
+    # 🔥 REGRA DE NEGÓCIO CORRIGIDA
+    # Só desconta almoço se turno >= 7 horas
+    if minutos >= 7 * 60:
+        minutos -= 60
+
+    return round(minutos / 60)
 
 
 # =========================

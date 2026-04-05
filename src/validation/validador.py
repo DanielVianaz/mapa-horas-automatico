@@ -5,7 +5,6 @@ import pandas as pd
 # =========================
 # NORMALIZAÇÃO
 # =========================
-
 def normalizar_texto(texto):
     if texto is None or pd.isna(texto):
         return ""
@@ -24,13 +23,15 @@ def normalizar_texto(texto):
         .replace("Ú", "U")
     )
 
+    # 🔥 aceita variações comuns
+    texto = texto.replace("H", ":").replace("-", "/")
+
     return texto
 
 
 # =========================
 # CLASSIFICAÇÃO
 # =========================
-
 def classificar_tipo(turno):
     texto = normalizar_texto(turno)
 
@@ -53,19 +54,24 @@ def classificar_tipo(turno):
 # =========================
 # VALIDAÇÃO DE TURNO
 # =========================
-
 def validar_formato_turno(turno):
     try:
         turno = turno.replace(" ", "")
         inicio, fim = turno.split("/")
 
-        h1, m1 = inicio.split(":")
-        h2, m2 = fim.split(":")
+        h1, m1 = map(int, inicio.split(":"))
+        h2, m2 = map(int, fim.split(":"))
 
-        int(h1)
-        int(m1)
-        int(h2)
-        int(m2)
+        inicio_min = h1 * 60 + m1
+        fim_min = h2 * 60 + m2
+
+        # 🔥 trata 00:00 como meia-noite
+        if fim_min == 0:
+            fim_min = 24 * 60
+
+        # 🔥 bloqueia turno invertido
+        if fim_min <= inicio_min:
+            return False
 
         return True
 
@@ -84,12 +90,14 @@ def calcular_horas_turno(turno):
     inicio_min = h1 * 60 + m1
     fim_min = h2 * 60 + m2
 
-    if fim_min == 0:  # 24:00
+    if fim_min == 0:
         fim_min = 24 * 60
 
     minutos = fim_min - inicio_min
 
-    minutos -= 60  # almoço
+    # 🔥 regra do almoço
+    if minutos >= 7 * 60:
+        minutos -= 60
 
     return round(minutos / 60)
 
@@ -97,7 +105,6 @@ def calcular_horas_turno(turno):
 # =========================
 # VALIDAÇÃO DE REGISTRO
 # =========================
-
 def validar_registro(registro, ano, mes):
     erros = []
 
@@ -154,6 +161,14 @@ def validar_registro(registro, ano, mes):
 
         horas_calculadas = calcular_horas_turno(turno)
 
+        # 🔥 NOVO LIMITE (14h)
+        if horas_calculadas > 14:
+            erros.append({
+                "dia": dia,
+                "colaborador": nome,
+                "erro": f"Turno muito longo: {horas_calculadas}h"
+            })
+
         if horas != horas_calculadas:
             erros.append({
                 "dia": dia,
@@ -194,7 +209,6 @@ def validar_registro(registro, ano, mes):
             })
             return erros
 
-        # fim de semana
         if data.weekday() >= 5:
             if horas != 0:
                 erros.append({
@@ -216,12 +230,10 @@ def validar_registro(registro, ano, mes):
 # =========================
 # VALIDAÇÃO GERAL
 # =========================
-
 def validar_dados(dados, ano, mes):
     erros = []
 
     for registro in dados:
-        erros_registro = validar_registro(registro, ano, mes)
-        erros.extend(erros_registro)
+        erros.extend(validar_registro(registro, ano, mes))
 
     return erros

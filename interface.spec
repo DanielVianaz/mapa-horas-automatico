@@ -29,7 +29,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='MapaHoras_Unicambio_FINAL',
+    name='interface',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
